@@ -14,3 +14,39 @@ model User {
   isVerified  Boolean  @default(false)
   createdAt   DateTime @default(now())
 }
+
+model Admin {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  email       String   @unique
+  password    String
+  permissions String[] @default([])
+  createdAt   DateTime @default(now())
+}
+model Product {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  title             String
+  slug              String   @unique
+  description       String?
+  regularPrice      Float    @default(0.0)
+  salePrice         Float    @default(0.0)
+  warranty          String?
+  category          String
+  sku               String   @unique
+  stockQuantity     Int      @default(0)
+  discountCode      String?
+  tags              String[] // multiple tags supported
+  publicationStatus String   @default("Draft") // ✅ Changed from enum to String
+  featuredProduct   Boolean  @default(false)
+  images            ProductImage[] @relation("ProductImages")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model ProductImage {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  url       String
+  product   Product  @relation("ProductImages", fields: [productId], references: [id])
+  productId String   @db.ObjectId
+  createdAt DateTime @default(now())
+}

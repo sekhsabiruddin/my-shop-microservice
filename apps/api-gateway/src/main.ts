@@ -7,7 +7,7 @@ import dotenv from "dotenv";
 
 import cookieParser from "cookie-parser";
 import morgan from "morgan";
-
+import { seedAdmin } from "./seeds/admin.seeder";
 const app = express();
 
 // CORS setup
@@ -52,7 +52,7 @@ app.use(limiter);
 // app.use("/recommend", proxy("http://localhost:6007"));
 // app.use("/admin", proxy("http://localhost:6005"));
 // app.use("/order", proxy("http://localhost:6004"));
-// app.use("/product", proxy("http://localhost:6002"));
+app.use("/product", proxy("http://localhost:6002"));
 app.use("/", proxy("http://localhost:6001"));
 
 // Start server
@@ -60,6 +60,14 @@ const port = process.env.PORT || 8080;
 
 const server = app.listen(port, async () => {
   console.log(`🚀 Listening at http://localhost:${port}/api`);
+
+  try {
+    // Run seeder when server starts
+    await seedAdmin();
+    console.log("✅ Admin seeder executed");
+  } catch (err) {
+    console.error("❌ Admin seeder failed:", err);
+  }
 });
 
 server.on("error", console.error);

@@ -1,14 +1,28 @@
 {
   "version": "0.2.0",
+  "compounds": [
+    {
+      "name": "Debug Gateway + Auth",
+      "configurations": ["Debug Gateway", "Debug Auth"],
+      "stopAll": true
+    }
+  ],
   "configurations": [
     {
       "type": "node",
-      "request": "attach",
-      "name": "Debug Auth Service",
-      "port": 9229,
-      "restart": true,
-      "skipFiles": ["<node_internals>/**"],
-      "autoAttachChildProcesses": true
+      "request": "launch",
+      "name": "Debug Gateway",
+      "runtimeExecutable": "nx",
+      "runtimeArgs": ["serve", "@my-shop-backend/api-gateway"],
+      "console": "integratedTerminal"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug Auth",
+      "runtimeExecutable": "nx",
+      "runtimeArgs": ["serve", "@my-shop-backend/auth-service"],
+      "console": "integratedTerminal"
     }
   ]
 }

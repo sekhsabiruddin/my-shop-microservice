@@ -17,3 +17,18 @@ Only run the spefice service :-nx serve api-gateway
 Why this command `npx prisma generate`?
 
 Why this command `npx prisma db push'?
+
+
+===========================CHATER -2===================
+
+1)How to install nextjs using nx ?
+=>nx add @nx/next 
+nx g @nx/next:app apps/user-ui
+
+2)How to install backend ?
+step:-1 nx g @nx/express:app product-service --directory=apps/product-service --e2eTestRunner=none
+
+step:-2 -> https://youtu.be/X69A4c2Rg54?si=SbMie2KUSK2Feran(2:26:44)
+
+
+

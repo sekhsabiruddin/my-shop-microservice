@@ -11,6 +11,15 @@
     },
     {
       "path": "./apps/api-gateway"
+    },
+    {
+      "path": "./apps/admin-ui"
+    },
+    {
+      "path": "./apps/product-service"
+    },
+    {
+      "path": "./apps/user-ui"
     }
   ]
 }

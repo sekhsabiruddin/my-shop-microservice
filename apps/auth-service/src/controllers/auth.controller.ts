@@ -13,6 +13,7 @@ export const userRegistration = async (
   next: NextFunction
 ) => {
   try {
+    debugger;
     const { name, email, password, confirmPassword } = req.body;
 
     if (!name || !email || !password || !confirmPassword) {
