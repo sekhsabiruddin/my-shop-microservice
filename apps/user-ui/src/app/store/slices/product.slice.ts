@@ -7,17 +7,35 @@ import Image5 from "../../../../public/assets/Strawberry.jpg";
 // Product Interface
 import { StaticImageData } from "next/image";
 
+export interface ProductImage {
+  id: string;
+  url: string;
+  productId: string;
+  createdAt: string;
+}
+
 export interface Product {
   id: string;
-  imageUrl: string | StaticImageData;
-  secondaryImageUrl: string | StaticImageData;
-  tags: string[];
   title: string;
+  slug: string;
   description: string;
-  size: string;
-  price: number;
-  originalPrice: number;
-  discountPercentage: number;
+  regularPrice: number;
+  salePrice: number;
+  warranty: string;
+  category: string;
+  sku: string;
+  stockQuantity: number;
+  discountCode: string;
+  tags: string[];
+  publicationStatus: string;
+  featuredProduct: boolean;
+  createdAt: string;
+  updatedAt: string;
+  images: ProductImage[];
+
+  discountPercentage?: number;
+  imageUrl?: string;
+  secondaryImageUrl?: string;
 }
 
 // Product State
@@ -25,71 +43,9 @@ interface ProductState {
   products: Product[];
 }
 
-// Initial State with 5 mock products
+// // Initial State with 5 mock products
 const initialState: ProductState = {
-  products: [
-    {
-      id: "1",
-      imageUrl: Image1,
-      secondaryImageUrl: Image1,
-      tags: ["Bestseller", "Face Serum"],
-      title:
-        "Beauty of Joseon Matte Sun Stick Mugwort + Camelia With SPF 50 PA++++",
-      description: "Skin 1004",
-      size: "120 ml",
-      price: 1370,
-      originalPrice: 2150,
-      discountPercentage: 45,
-    },
-    {
-      id: "2",
-      imageUrl: Image2,
-      secondaryImageUrl: Image2,
-      tags: ["Trending"],
-      title: "Some Other Product",
-      description: "Skin 2000",
-      size: "100 ml",
-      price: 1200,
-      originalPrice: 1800,
-      discountPercentage: 33,
-    },
-    {
-      id: "3",
-      imageUrl: Image3,
-      secondaryImageUrl: Image3,
-      tags: ["New Arrival"],
-      title: "Another Product",
-      description: "Skin 3000",
-      size: "150 ml",
-      price: 1600,
-      originalPrice: 2000,
-      discountPercentage: 20,
-    },
-    {
-      id: "4",
-      imageUrl: Image4,
-      secondaryImageUrl: Image4,
-      tags: ["Limited Edition"],
-      title: "Luxury Skin Serum",
-      description: "Premium Quality",
-      size: "200 ml",
-      price: 2500,
-      originalPrice: 3200,
-      discountPercentage: 22,
-    },
-    {
-      id: "5",
-      imageUrl: Image5,
-      secondaryImageUrl: Image5,
-      tags: ["Hot Deal"],
-      title: "Glow Moisturizer",
-      description: "Hydration Boost",
-      size: "80 ml",
-      price: 900,
-      originalPrice: 1500,
-      discountPercentage: 40,
-    },
-  ],
+  products: [],
 };
 
 // Create Slice
