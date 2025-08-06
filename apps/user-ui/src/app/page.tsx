@@ -7,10 +7,12 @@ import { useAppDispatch, useAppSelector } from "./store/hook";
 import { closeCart } from "./store/slices/cartSlice";
 import ProductCard from "./shared/componennts/ProductCard/ProductCard";
 import CartSidebar from "./shared/componennts/CardSidebar/CartSidebar";
+import { useRealtime } from "./hooks/useRealtime";
 
 const Page = () => {
   const dispatch = useAppDispatch();
   const isOpen = useAppSelector((state) => state.cart.isOpen);
+  useRealtime();
 
   // 🔹 Fetch products directly inside Page.tsx
   const {

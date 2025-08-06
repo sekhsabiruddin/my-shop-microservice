@@ -6,6 +6,7 @@ datasource db {
   provider = "mongodb"
   url      = env("DATABASE_URL")
 }
+
 model User {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
   name        String
@@ -13,6 +14,7 @@ model User {
   password    String
   isVerified  Boolean  @default(false)
   createdAt   DateTime @default(now())
+  reviews     Review[]
 }
 
 model Admin {
@@ -23,6 +25,7 @@ model Admin {
   permissions String[] @default([])
   createdAt   DateTime @default(now())
 }
+
 model Product {
   id                String   @id @default(auto()) @map("_id") @db.ObjectId
   title             String
@@ -35,10 +38,11 @@ model Product {
   sku               String   @unique
   stockQuantity     Int      @default(0)
   discountCode      String?
-  tags              String[] // multiple tags supported
-  publicationStatus String   @default("Draft") // ✅ Changed from enum to String
+  tags              String[] @default([])
+  publicationStatus String   @default("Draft")
   featuredProduct   Boolean  @default(false)
   images            ProductImage[] @relation("ProductImages")
+  reviews           Review[]
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 }
@@ -48,5 +52,34 @@ model ProductImage {
   url       String
   product   Product  @relation("ProductImages", fields: [productId], references: [id])
   productId String   @db.ObjectId
+  createdAt DateTime @default(now())
+}
+
+model Review {
+  id                  String   @id @default(auto()) @map("_id") @db.ObjectId
+  rating              Int
+  title               String
+  comment             String
+  date                DateTime @default(now())
+  likes               Int      @default(0)
+  isVerifiedPurchase  Boolean  @default(false)
+  recommendsProduct   Boolean  @default(false)
+
+  // Relations
+  product   Product @relation(fields: [productId], references: [id])
+  productId String  @db.ObjectId
+
+  user   User @relation(fields: [userId], references: [id])
+  userId String @db.ObjectId
+
+  // Optional review images as separate model
+  images ReviewImage[] @relation("ReviewImages")
+}
+
+model ReviewImage {
+  id       String  @id @default(auto()) @map("_id") @db.ObjectId
+  url      String
+  review   Review  @relation("ReviewImages", fields: [reviewId], references: [id])
+  reviewId String  @db.ObjectId
   createdAt DateTime @default(now())
 }

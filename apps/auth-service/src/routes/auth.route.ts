@@ -28,7 +28,7 @@ router.post("/forgot-password", verifyUserForgotPassword);
 router.post("/verify-forgot-password-otp", verifyForgotPasswordOtp);
 
 // 🔐 User Profile & Password Management
-router.get("/me", isAuthenticated, getUser);
+router.get("/logged-in-user", isAuthenticated, getUser);
 router.put("/update-password", isAuthenticated, updateUserPassword);
 
 export default router;

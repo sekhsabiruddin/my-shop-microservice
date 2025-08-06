@@ -31,4 +31,5 @@ step:-1 nx g @nx/express:app product-service --directory=apps/product-service --
 step:-2 -> https://youtu.be/X69A4c2Rg54?si=SbMie2KUSK2Feran(2:26:44)
 
 
-
+3) Where should I store the access and refresh tokens? How does it work?
+✅ Store both tokens in HTTP-only cookies. These cookies are automatically sent with each request to your server, so you don’t need to manually attach them in your frontend code.

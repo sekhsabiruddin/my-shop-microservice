@@ -1,10 +1,11 @@
 "use client";
 
 import { Search, Heart, ShoppingCart, User } from "lucide-react";
-import Image from "next/image";
+
 import { useAppSelector, useAppDispatch } from "../../../store/hook";
 import { toggleCart } from "../../../store/slices/cartSlice";
 import { RootState } from "../../../store";
+import Link from "next/link";
 
 export default function Header() {
   const dispatch = useAppDispatch();
@@ -19,13 +20,11 @@ export default function Header() {
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           {/* Logo */}
           <div className="flex-shrink-0">
-            <Image
-              src="/logo.png"
-              alt="Eshop Seller"
-              width={140}
-              height={45}
-              className="cursor-pointer"
-            />
+            <Link href="/" className="cursor-pointer">
+              <span className="text-2xl font-bold text-purple-600 hover:text-purple-800">
+                MyShop
+              </span>
+            </Link>
           </div>
 
           {/* Search Bar */}
