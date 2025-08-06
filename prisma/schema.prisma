@@ -15,7 +15,10 @@ model User {
   isVerified  Boolean  @default(false)
   createdAt   DateTime @default(now())
   reviews     Review[]
+  chatRoomUsers ChatRoomUser[]
+  messages    Message[]
 }
+
 
 model Admin {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
@@ -24,6 +27,8 @@ model Admin {
   password    String
   permissions String[] @default([])
   createdAt   DateTime @default(now())
+  chatRooms   ChatRoom[]
+  messages    Message[]
 }
 
 model Product {
@@ -82,4 +87,42 @@ model ReviewImage {
   review   Review  @relation("ReviewImages", fields: [reviewId], references: [id])
   reviewId String  @db.ObjectId
   createdAt DateTime @default(now())
+}
+
+model ChatRoom {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  name        String?   // optional room name
+  isGroup     Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  // Relations
+  admin       Admin?    @relation(fields: [adminId], references: [id], onDelete: SetNull)
+  adminId     String?   @db.ObjectId
+  messages    Message[]
+  
+  chatRoomUsers ChatRoomUser[]
+}
+
+// Explicit junction model for User-ChatRoom many-to-many relationship
+model ChatRoomUser {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  joinedAt   DateTime @default(now())
+  isActive   Boolean  @default(true)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String   @db.ObjectId
+  chatRoom   ChatRoom @relation(fields: [chatRoomId], references: [id], onDelete: Cascade)
+  chatRoomId String   @db.ObjectId
+  @@unique([userId, chatRoomId])
+}
+
+model Message {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  content     String
+  createdAt   DateTime  @default(now())
+  seenBy      String[]  @default([]) // store user/admin IDs who have seen it
+  room        ChatRoom  @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  roomId      String    @db.ObjectId
+  senderUser  User?     @relation(fields: [senderUserId], references: [id], onDelete: SetNull)
+  senderUserId String?  @db.ObjectId
+  senderAdmin Admin?    @relation(fields: [senderAdminId], references: [id], onDelete: SetNull)
+  senderAdminId String? @db.ObjectId
 }

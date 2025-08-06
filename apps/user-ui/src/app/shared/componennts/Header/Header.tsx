@@ -58,9 +58,9 @@ export default function Header() {
               )}
             </button>
 
-            <button className="hover:text-purple-600 transition-colors">
+            <Link href="/profile">
               <User className="w-6 h-6" />
-            </button>
+            </Link>
           </div>
         </div>
 
