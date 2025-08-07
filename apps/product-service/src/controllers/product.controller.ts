@@ -274,11 +274,13 @@ export const addReviewToProduct = async (req: any, res: Response) => {
         rating: parsedRating,
         title,
         comment,
-        images: imageUrls, // ImageKit URLs
         isVerifiedPurchase: Boolean(isVerifiedPurchase),
         recommendsProduct: Boolean(recommendsProduct),
-        productId, // ✅ Fixed: use productId instead of connect
-        userId, // ✅ Fixed: use userId instead of connect
+        productId,
+        userId,
+        images: {
+          create: imageUrls.map((url) => ({ url })),
+        },
       },
       include: {
         user: {
@@ -286,7 +288,6 @@ export const addReviewToProduct = async (req: any, res: Response) => {
             id: true,
             name: true,
             email: true,
-            // Don't include password
           },
         },
         product: {
@@ -296,6 +297,7 @@ export const addReviewToProduct = async (req: any, res: Response) => {
             slug: true,
           },
         },
+        images: true, // include the newly created images
       },
     });
 
@@ -361,7 +363,6 @@ export const getReviewsByProduct = async (req: any, res: Response) => {
             select: {
               id: true,
               name: true,
-              // Don't include email and password for privacy
             },
           },
         },

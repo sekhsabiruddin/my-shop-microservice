@@ -47,14 +47,14 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-800"
+            className="text-gray-500 hover:text-gray-800 text-xl"
           >
             ✕
           </button>
         </div>
 
         {/* Form */}
-        <div className="space-y-4 max-h-[70vh] overflow-y-auto">
+        <div className="space-y-4 max-h-[70vh] overflow-y-auto scrollbar-none">
           <div>
             <label className="text-sm font-medium">Pincode *</label>
             <input
@@ -119,10 +119,10 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
                 <button
                   key={type}
                   type="button"
-                  className={`px-4 py-2 rounded border ${
+                  className={`px-4 py-2 rounded border transition ${
                     formData.type === type
-                      ? "bg-pink-600 text-white"
-                      : "bg-gray-100"
+                      ? "bg-[#773D4C] text-white border-[#773D4C]"
+                      : "bg-gray-100 text-gray-700 hover:border-gray-300"
                   }`}
                   onClick={() => setFormData((prev) => ({ ...prev, type }))}
                 >
@@ -157,10 +157,10 @@ const AddAddressModal: React.FC<AddAddressModalProps> = ({
         </div>
 
         {/* Actions */}
-        <div className="mt-6">
+        <div className="mt-6 w-full">
           <button
             onClick={handleSave}
-            className="w-full bg-pink-700 text-white py-3 rounded-lg font-medium hover:bg-pink-800 transition"
+            className="w-full bg-[#773D4C] text-white py-3 rounded-lg font-medium hover:bg-[#5f303d] transition"
           >
             ADD ADDRESS
           </button>

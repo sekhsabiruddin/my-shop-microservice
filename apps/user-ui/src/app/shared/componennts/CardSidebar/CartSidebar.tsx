@@ -1,225 +1,169 @@
-// import Image from "next/image";
-// import { useAppSelector, useAppDispatch } from "../../../store/hook";
-// import {
-//   increaseQty,
-//   decreaseQty,
-//   removeFromCart,
-//   closeCart,
-// } from "../../../store/slices/cartSlice";
-// import { RootState } from "../../../store"; // to type our selector
-// import { Product } from "../../../store/slices/product.slice"; // reuse your Product type
-
-// export default function CartSidebar() {
-//   const dispatch = useAppDispatch();
-//   const { items } = useAppSelector((state: RootState) => state.cart);
-//   const products = useAppSelector((state: RootState) => state.product.products);
-//   console.log("insde the cart product", products);
-//   const getProduct = (id: string): Product | undefined =>
-//     products.find((p) => p.id === id);
-
-//   const total = items.reduce((acc, item) => {
-//     const product = getProduct(item.productId);
-//     return acc + (product?.salePrice ?? 0) * item.quantity;
-//   }, 0);
-
-//   return (
-//     <div className="h-full w-96 bg-white p-4 shadow-lg flex flex-col">
-//       {/* Header */}
-//       <div className="flex justify-between items-center mb-4">
-//         <h2 className="text-lg font-bold">Your Cart</h2>
-//         <button
-//           onClick={() => dispatch(closeCart())}
-//           className="text-gray-600 hover:text-red-500"
-//         >
-//           ✕
-//         </button>
-//       </div>
-
-//       {/* Cart Items */}
-//       <div className="flex-1 space-y-4 overflow-y-auto">
-//         {items.length === 0 ? (
-//           <p className="text-gray-500 text-center mt-10">Your cart is empty</p>
-//         ) : (
-//           items.map((item) => {
-//             const product = getProduct(item.productId);
-//             if (!product) return null;
-//             return (
-//               <div
-//                 key={item.productId}
-//                 className="flex items-center justify-between border-b pb-2"
-//               >
-//                 <Image
-//                   src={product.imageUrl[0]}
-//                   alt={product.title}
-//                   width={60}
-//                   height={60}
-//                   className="rounded"
-//                 />
-//                 <div className="flex-1 ml-4">
-//                   <p className="text-sm font-semibold">{product.title}</p>
-
-//                   <p className="text-sm font-medium">₹{product.salePrice}</p>
-//                 </div>
-
-//                 <div className="flex items-center space-x-2">
-//                   <button
-//                     onClick={() => dispatch(decreaseQty(product.id))}
-//                     className="px-2 border rounded"
-//                   >
-//                     -
-//                   </button>
-//                   <span>{item.quantity}</span>
-//                   <button
-//                     onClick={() => dispatch(increaseQty(product.id))}
-//                     className="px-2 border rounded"
-//                   >
-//                     +
-//                   </button>
-//                 </div>
-
-//                 <button
-//                   onClick={() => dispatch(removeFromCart(product.id))}
-//                   className="text-red-500 ml-2"
-//                 >
-//                   ✕
-//                 </button>
-//               </div>
-//             );
-//           })
-//         )}
-//       </div>
-
-//       {/* Footer */}
-//       <div className="pt-4 border-t mt-4">
-//         <div className="flex justify-between">
-//           <span className="text-sm">Total</span>
-//           <span className="font-bold">₹{total.toLocaleString()}</span>
-//         </div>
-//         <button
-//           disabled={items.length === 0}
-//           className={`mt-4 w-full py-2 rounded text-white ${
-//             items.length === 0
-//               ? "bg-gray-400 cursor-not-allowed"
-//               : "bg-black hover:bg-gray-800"
-//           }`}
-//         >
-//           Checkout
-//         </button>
-//       </div>
-//     </div>
-//   );
-// }
 "use client";
+
 import Image from "next/image";
-import { useAppSelector, useAppDispatch } from "../../../store/hook";
-import {
-  increaseQty,
-  decreaseQty,
-  removeFromCart,
-  closeCart,
-} from "../../../store/slices/cartSlice";
-import { useQueryClient } from "@tanstack/react-query";
-import { Product } from "../../../store/slices/product.slice";
+import Link from "next/link";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import axiosInstance from "../../../utils/axiosinstance";
+import { useAppDispatch } from "../../../store/hook";
+import { closeCart } from "../../../store/slices/cartSlice";
+
+// Type definitions
+type ProductImage = {
+  url: string;
+};
+
+type Product = {
+  id: string;
+  title: string;
+  salePrice: number;
+  images: ProductImage[];
+};
+
+type CartItem = {
+  id: string;
+  quantity: number;
+  productId: string;
+  product: Product;
+};
 
 export default function CartSidebar() {
   const dispatch = useAppDispatch();
-  const { items } = useAppSelector((state) => state.cart);
-
-  // 🔹 Access products from React Query cache
   const queryClient = useQueryClient();
-  const products: Product[] = queryClient.getQueryData(["products"]) || [];
 
-  const getProduct = (id: string): Product | undefined =>
-    products.find((p) => p.id === id);
+  const {
+    data: cartItems,
+    isLoading,
+    isError,
+  } = useQuery<CartItem[]>({
+    queryKey: ["cart"],
+    queryFn: async () => {
+      const res = await axiosInstance.get("/cart/api/get-all-cart", {
+        withCredentials: true,
+      });
+      return res.data;
+    },
+  });
 
-  const total = items.reduce((acc, item) => {
-    const product = getProduct(item.productId);
-    return acc + (product?.salePrice ?? 0) * item.quantity;
+  const handleIncrease = async (productId: string) => {
+    await axiosInstance.patch(
+      "/cart/api/increase-to-cart",
+      { productId },
+      { withCredentials: true }
+    );
+    queryClient.invalidateQueries(["cart"]);
+  };
+
+  const handleDecrease = async (productId: string) => {
+    await axiosInstance.patch(
+      "/cart/api/decrease-to-cart",
+      { productId },
+      { withCredentials: true }
+    );
+    queryClient.invalidateQueries(["cart"]);
+  };
+
+  const handleRemove = async (productId: string) => {
+    await axiosInstance.delete("/cart/api/remove-to-cart", {
+      data: { productId },
+      withCredentials: true,
+    });
+    queryClient.invalidateQueries(["cart"]);
+  };
+
+  const total = cartItems?.reduce((acc, item) => {
+    return acc + item.product.salePrice * item.quantity;
   }, 0);
 
   return (
     <div className="h-full w-96 bg-white p-4 shadow-lg flex flex-col">
       {/* Header */}
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg font-bold">Your Cart</h2>
-        <button
-          onClick={() => dispatch(closeCart())}
-          className="text-gray-600 hover:text-red-500"
-        >
-          ✕
-        </button>
+      <div className="flex justify-between items-center border-b pb-4">
+        <div className="flex gap-3 items-center">
+          <span
+            onClick={() => dispatch(closeCart())}
+            className="cursor-pointer"
+          >
+            ✕
+          </span>
+          <p className="font-bold text-lg">Your Bag</p>
+          {cartItems && <span>({cartItems.length} items)</span>}
+        </div>
       </div>
 
-      {/* Cart Items */}
-      <div className="flex-1 space-y-4 overflow-y-auto">
-        {items.length === 0 ? (
+      {/* Cart Content */}
+      <div className="flex-1 space-y-4 overflow-y-auto mt-4">
+        {isLoading && <p className="text-center">Loading...</p>}
+        {isError && (
+          <p className="text-center text-red-500">Failed to load cart</p>
+        )}
+        {cartItems?.length === 0 && (
           <p className="text-gray-500 text-center mt-10">Your cart is empty</p>
-        ) : (
-          items.map((item) => {
-            const product = getProduct(item.productId);
-            if (!product) return null;
-            return (
-              <div
-                key={item.productId}
-                className="flex items-center justify-between border-b pb-2"
-              >
-                <Image
-                  src={product.imageUrl?.[0] ?? "/fallback.png"}
-                  alt={product.title}
-                  width={60}
-                  height={60}
-                  className="rounded"
-                />
-                <div className="flex-1 ml-4">
-                  <p className="text-sm font-semibold">{product.title}</p>
-                  <p className="text-sm font-medium">₹{product.salePrice}</p>
-                </div>
+        )}
 
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => dispatch(decreaseQty(product.id))}
-                    className="px-2 border rounded"
-                  >
-                    -
-                  </button>
-                  <span>{item.quantity}</span>
-                  <button
-                    onClick={() => dispatch(increaseQty(product.id))}
-                    className="px-2 border rounded"
-                  >
-                    +
-                  </button>
-                </div>
-
+        {cartItems?.map((item) => (
+          <div
+            key={item.id}
+            className="flex items-center justify-between border-b pb-2"
+          >
+            <Image
+              src={item.product.images?.[0]?.url || "/fallback.png"}
+              alt={item.product.title}
+              width={60}
+              height={60}
+              className="rounded"
+            />
+            <div className="flex-1 ml-4">
+              <p className="text-sm font-semibold">{item.product.title}</p>
+              <p className="text-sm font-medium">₹{item.product.salePrice}</p>
+              <div className="flex items-center gap-2 mt-1">
                 <button
-                  onClick={() => dispatch(removeFromCart(product.id))}
-                  className="text-red-500 ml-2"
+                  onClick={() => handleDecrease(item.productId)}
+                  className="px-2 py-1 border rounded"
                 >
-                  ✕
+                  −
+                </button>
+                <span className="px-2">{item.quantity}</span>
+                <button
+                  onClick={() => handleIncrease(item.productId)}
+                  className="px-2 py-1 border rounded"
+                >
+                  +
                 </button>
               </div>
-            );
-          })
-        )}
+            </div>
+            <button
+              onClick={() => handleRemove(item.productId)}
+              className="text-red-500 ml-2"
+            >
+              ✕
+            </button>
+          </div>
+        ))}
       </div>
 
       {/* Footer */}
-      <div className="pt-4 border-t mt-4">
-        <div className="flex justify-between">
-          <span className="text-sm">Total</span>
-          <span className="font-bold">₹{total.toLocaleString()}</span>
+      {cartItems && cartItems.length > 0 && (
+        <div className="pt-4 border-t mt-4">
+          <div className="bg-surface-10 h-[72px] w-full shadow p-4 flex justify-between items-end">
+            <div>
+              <p className="text-xs text-gray-500 uppercase">Total</p>
+              <p className="text-lg font-semibold text-gray-900">
+                ₹{total?.toLocaleString()}
+              </p>
+              <p className="text-[10px] text-gray-400">
+                Inclusive of all taxes
+              </p>
+            </div>
+
+            <Link
+              href="/checkout"
+              className="bg-black text-white uppercase px-4 py-2 text-sm"
+            >
+              Checkout
+            </Link>
+          </div>
         </div>
-        <button
-          disabled={items.length === 0}
-          className={`mt-4 w-full py-2 rounded text-white ${
-            items.length === 0
-              ? "bg-gray-400 cursor-not-allowed"
-              : "bg-black hover:bg-gray-800"
-          }`}
-        >
-          Checkout
-        </button>
-      </div>
+      )}
     </div>
   );
 }

@@ -1,83 +1,183 @@
+// import React from "react";
+
+// const OrderSummary = ({ onChooseAddress }: { onChooseAddress: () => void }) => {
+//   return (
+//     <div className="lg:w-80">
+//       <div className="bg-white rounded-lg shadow-md overflow-hidden">
+//         <div className="p-6">
+//           {/* Header */}
+//           <h3 className="text-lg font-semibold text-gray-900 mb-4">
+//             Offers & Coupons
+//           </h3>
+
+//           {/* Coupon Input */}
+//           <div className="flex gap-2 mt-2">
+//             <div className="flex-1 border border-[#EAEAEA] h-[40px] px-3 py-[9.5px] rounded">
+//               <input
+//                 type="text"
+//                 placeholder="Enter coupon code"
+//                 className="sub-heading-04-regular outline-none w-full disabled:bg-white disabled:cursor-not-allowed"
+//               />
+//             </div>
+//             <button className="paragraph-06-medium bg-secondary-60 text-surface-10 h-[40px] px-4 rounded hover:bg-secondary-80 transition-all whitespace-nowrap">
+//               APPLY
+//             </button>
+//           </div>
+
+//           {/* Price Details Title */}
+//           <h2 className="heading-03-regular-mobile lg:sub-heading-01-regular mt-6 lg:mt-8">
+//             Price Details
+//           </h2>
+
+//           {/* Total MRP */}
+//           <div className="mt-4 flex justify-between items-center">
+//             <span className="paragraph-06-regular text-neutral-40">
+//               Total MRP
+//             </span>
+//             <span className="paragraph-06-medium-mobile lg:paragraph-03-medium">
+//               ₹500
+//             </span>
+//           </div>
+
+//           {/* Discounts */}
+//           <div className="mt-4 flex justify-between items-center">
+//             <span className="paragraph-06-regular text-neutral-40">
+//               Discounts
+//             </span>
+//             <span className="paragraph-06-medium-mobile lg:paragraph-03-medium text-success-40">
+//               -₹700
+//             </span>
+//           </div>
+
+//           {/* Subtotal */}
+//           <div className="mt-4 flex justify-between items-center">
+//             <span className="paragraph-06-regular text-neutral-40">
+//               Subtotal
+//             </span>
+//             <span className="paragraph-06-medium-mobile lg:paragraph-03-medium">
+//               ₹12,400
+//             </span>
+//           </div>
+
+//           {/* Shipping Fee */}
+//           <div className="mt-4 flex justify-between items-center">
+//             <span className="paragraph-06-regular text-neutral-40">
+//               Shipping Fee
+//             </span>
+//             <span className="paragraph-06-medium-mobile lg:paragraph-03-medium text-success-40">
+//               Free
+//             </span>
+//           </div>
+
+//           {/* Divider */}
+//           <div className="mt-6 mb-4 border-t border-secondary-20" />
+
+//           {/* Total Amount */}
+//           <div className="flex justify-between items-center">
+//             <span className="heading-04-regular-mobile lg:paragraph-06-regular font-semibold">
+//               Total Amount
+//             </span>
+//             <span className="paragraph-06-medium-mobile lg:paragraph-03-medium text-neutral-90 font-semibold">
+//               ₹15,000
+//             </span>
+//           </div>
+
+//           {/* Action Button */}
+//           <div className="mt-6 lg:mt-8">
+//             <button
+//               className="paragraph-06-medium bg-secondary-60 text-surface-10 w-full py-3 h-[45px] rounded-lg hover:bg-secondary-80 transition-all"
+//               onClick={onChooseAddress}
+//             >
+//               CHOOSE ADDRESS
+//             </button>
+//           </div>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// };
+
+// export default OrderSummary;
+
 import React from "react";
 
-const OrderSummary = ({ onChooseAddress }: { onChooseAddress: () => void }) => {
+type Props = {
+  onChooseAddress: () => void;
+  totalMrp: number;
+  totalDiscount: number;
+  totalAmount: number;
+};
+
+const OrderSummary: React.FC<Props> = ({
+  onChooseAddress,
+  totalMrp,
+  totalDiscount,
+  totalAmount,
+}) => {
   return (
     <div className="lg:w-80">
-      <div className="bg-white rounded-lg shadow-sm">
+      <div className="bg-white rounded-lg shadow-md overflow-hidden">
         <div className="p-6">
-          {/* Header */}
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
             Offers & Coupons
           </h3>
 
-          {/* Coupons Section */}
-          <div className="flex gap-2 mb-4">
-            <input
-              type="text"
-              placeholder="Enter code"
-              className="flex-1 border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-600"
-            />
-            <button className="bg-pink-200 text-gray-800 px-4 py-2 rounded text-sm font-medium hover:bg-pink-300 transition-colors">
+          <div className="flex gap-2 mt-2">
+            <div className="flex-1 border border-[#EAEAEA] h-[40px] px-3 py-[9.5px] rounded">
+              <input
+                type="text"
+                placeholder="Enter coupon code"
+                className="sub-heading-04-regular outline-none w-full"
+              />
+            </div>
+            <button className="paragraph-06-medium bg-secondary-60 text-surface-10 h-[40px] px-4 rounded hover:bg-secondary-80 transition-all">
               APPLY
             </button>
           </div>
 
-          <div className="flex items-center justify-between border border-gray-200 rounded-lg p-4 mb-6">
-            <span className="text-sm text-gray-700">
-              4 Coupons & Offers available
+          <h2 className="heading-03-regular-mobile lg:sub-heading-01-regular mt-6 lg:mt-8">
+            Price Details
+          </h2>
+
+          <div className="mt-4 flex justify-between items-center">
+            <span className="text-neutral-40">Total MRP</span>
+            <span>₹{totalMrp.toLocaleString()}</span>
+          </div>
+
+          <div className="mt-4 flex justify-between items-center">
+            <span className="text-neutral-40">Discounts</span>
+            <span className="text-success-40">
+              −₹{totalDiscount.toLocaleString()}
             </span>
-            <span className="text-gray-400 text-lg">›</span>
           </div>
 
-          {/* Gift Option */}
-          <div className="flex items-start gap-2 border border-gray-200 rounded-lg p-4 mb-6">
-            <input type="checkbox" className="mt-1 w-4 h-4" />
-            <p className="text-sm text-gray-700">
-              Ordering as a gift? <br />
-              <span className="text-xs text-gray-500">
-                Get your order gift wrapped for ₹50
-              </span>
-            </p>
+          <div className="mt-4 flex justify-between items-center">
+            <span className="text-neutral-40">Subtotal</span>
+            <span>₹{(totalMrp - totalDiscount).toLocaleString()}</span>
           </div>
 
-          {/* Price Details */}
-          <div className="space-y-4 mb-6">
-            <h4 className="font-semibold text-gray-900">Price Details</h4>
-
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Total MRP</span>
-                <span className="text-gray-900">₹23,345</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Subtotal</span>
-                <span className="text-gray-900">₹22,340</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Discounts</span>
-                <span className="text-green-600">-₹440</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Shipping Fee</span>
-                <span className="text-gray-500">To be calculated</span>
-              </div>
-            </div>
-
-            <div className="border-t pt-4">
-              <div className="flex justify-between text-lg font-semibold">
-                <span>Total Amount</span>
-                <span>₹22,965</span>
-              </div>
-            </div>
+          <div className="mt-4 flex justify-between items-center">
+            <span className="text-neutral-40">Shipping Fee</span>
+            <span className="text-success-40">Free</span>
           </div>
 
-          {/* Choose Address Button */}
-          <button
-            className="w-full bg-pink-700 text-white py-3 rounded-lg font-medium hover:bg-pink-800 transition-colors"
-            onClick={onChooseAddress}
-          >
-            CHOOSE ADDRESS
-          </button>
+          <div className="mt-6 mb-4 border-t border-secondary-20" />
+
+          <div className="flex justify-between items-center">
+            <span className="font-semibold">Total Amount</span>
+            <span className="font-semibold">
+              ₹{totalAmount.toLocaleString()}
+            </span>
+          </div>
+
+          <div className="mt-6 lg:mt-8">
+            <button
+              className="w-full py-3 h-[45px]  bg-secondary-60 text-white transition-all"
+              onClick={onChooseAddress}
+            >
+              CHOOSE ADDRESS
+            </button>
+          </div>
         </div>
       </div>
     </div>

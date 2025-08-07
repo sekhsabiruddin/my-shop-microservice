@@ -1,20 +1,21 @@
 "use client";
+
 import React from "react";
 import { Trash2 } from "lucide-react";
 
-type CartItem = {
+interface Product {
   id: string;
-  name: string;
-  price: number;
-  originalPrice: number;
-  discount: string;
-  quantity: number;
-  image: string;
-  variant: string;
-};
+  title: string;
+  salePrice: number;
+  regularPrice: number;
+  discountPercentage?: number;
+  category: string;
+  quantity: number; // ✅ Make sure this is passed from the parent
+  images: { url: string }[];
+}
 
 interface CartItemListProps {
-  items: CartItem[];
+  items: Product[];
   onQuantityChange: (id: string, newQty: number) => void;
   onRemove: (id: string) => void;
 }
@@ -25,7 +26,7 @@ const CartItemList: React.FC<CartItemListProps> = ({
   onRemove,
 }) => {
   return (
-    <div className="bg-[#f9f6f4] rounded-lg p-6">
+    <div className="bg-[#ffffff] rounded-lg p-6 w-full">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-lg font-semibold text-gray-900">
           Bag ({items.length} items)
@@ -41,26 +42,31 @@ const CartItemList: React.FC<CartItemListProps> = ({
             {/* Product Info */}
             <div className="flex gap-4">
               <img
-                src={item.image}
-                alt={item.name}
+                src={item.images?.[0]?.url ?? "/fallback.png"}
+                alt={item.title}
                 className="w-16 h-16 object-cover rounded-md"
               />
               <div>
                 <p className="text-xs uppercase text-gray-500 font-semibold">
-                  {item.name.split(" ")[0]} {/* Brand/First word */}
+                  {item.title.split(" ")[0]}
                 </p>
-                <p className="text-sm text-gray-900 font-medium">{item.name}</p>
-                <p className="text-xs text-[#773d4c] mt-1">{item.variant}</p>
+                <p className="text-sm text-gray-900 font-medium">
+                  {item.title}
+                </p>
+                <p className="text-xs text-[#773d4c] mt-1">{item.category}</p>
+
                 <div className="mt-2 text-sm">
                   <span className="font-semibold text-gray-900">
-                    ₹{item.price.toLocaleString()}
+                    ₹{item.salePrice.toLocaleString()}
                   </span>
                   <span className="ml-2 line-through text-gray-400">
-                    ₹{item.originalPrice.toLocaleString()}
+                    ₹{item.regularPrice.toLocaleString()}
                   </span>
-                  <span className="ml-2 text-green-600">
-                    ({item.discount} off)
-                  </span>
+                  {item.discountPercentage && (
+                    <span className="ml-2 text-green-600">
+                      ({item.discountPercentage}% off)
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -73,12 +79,11 @@ const CartItemList: React.FC<CartItemListProps> = ({
               >
                 <Trash2 size={18} />
               </button>
-              <div className="flex items-center border rounded-md">
+              <div className="flex items-center border rounded-md mt-2">
                 <button
-                  onClick={() =>
-                    onQuantityChange(item.id, Math.max(1, item.quantity - 1))
-                  }
+                  onClick={() => onQuantityChange(item.id, item.quantity - 1)}
                   className="px-3 py-1 text-gray-600 hover:bg-gray-200"
+                  disabled={item.quantity <= 1}
                 >
                   −
                 </button>
