@@ -9,8 +9,14 @@ import {
   verifyUserForgotPassword,
   verifyForgotPasswordOtp,
   logoutUser,
+  loginAdmin,
+  refreshAdminToken,
+  getAdmin,
+  logoutAdmin,
+  updateUserProfile,
 } from "../controllers/auth.controller";
 import isAuthenticated from "../../../../packages/middleware/isAuthenticated";
+import isAdminAuthenticated from "../../../../packages/middleware/isAdminAuthenticated";
 
 const router: Router = express.Router();
 
@@ -30,5 +36,12 @@ router.post("/verify-forgot-password-otp", verifyForgotPasswordOtp);
 // 🔐 User Profile & Password Management
 router.get("/logged-in-user", isAuthenticated, getUser);
 router.put("/update-password", isAuthenticated, updateUserPassword);
+
+//=======================it for admin =========================
+router.post("/login-admin", loginAdmin);
+router.post("/admin-refresh-token", refreshAdminToken);
+router.get("/logged-in-admin", isAdminAuthenticated, getAdmin);
+router.post("/logout-admin", isAdminAuthenticated, logoutAdmin);
+router.put("/update-profile", isAuthenticated, updateUserProfile);
 
 export default router;

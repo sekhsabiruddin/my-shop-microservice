@@ -1,10 +1,17 @@
-import { Router } from "express";
-import * as chatController from "../controller/chat.controller";
+// routes/chatRoutes.ts
+import express from "express";
+import {
+  getInboxUsers,
+  getMessagesWithAdmin,
+  getMyMessages,
+  sendMessage,
+} from "../controller/chat.controller";
 
-const chatRoutes = Router();
+const router = express.Router();
 
-chatRoutes.post("/room", chatController.createRoom);
-chatRoutes.get("/room/:roomId/messages", chatController.getMessages);
-chatRoutes.post("/room/:roomId/message", chatController.saveMessage);
+router.post("/send", sendMessage);
+router.get("/:userId/messages", getMessagesWithAdmin);
+router.get("/me", getMyMessages);
+router.get("/inbox-users", getInboxUsers);
 
-export default chatRoutes;
+export default router;

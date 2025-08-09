@@ -113,7 +113,10 @@ const WriteReviewSidebar: React.FC<WriteReviewSidebarProps> = ({
         recommendsProduct: data.wouldRecommend,
       };
 
-      await axiosInstance.post(`product/api/products/${productId}/reviews`, payload);
+      await axiosInstance.post(
+        `product/api/products/${productId}/reviews`,
+        payload
+      );
 
       alert("Review submitted successfully!");
       reset();
@@ -300,7 +303,7 @@ const WriteReviewSidebar: React.FC<WriteReviewSidebarProps> = ({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full bg-purple-600 text-white py-3 rounded-md font-medium hover:bg-purple-700"
+              className="w-full bg-[#773d4c] text-white py-3 rounded-md font-medium hover:bg-purple-700"
             >
               {isSubmitting ? "Submitting..." : "SUBMIT"}
             </button>

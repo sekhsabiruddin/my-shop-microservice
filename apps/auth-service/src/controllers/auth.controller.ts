@@ -6,6 +6,7 @@ import { sendEmail } from "../utils/sendEmail/sendEmail";
 import { AuthError, ValidationError } from "../../../../packages/error-handler";
 import { setCookie } from "../utils/cookies/setCookies";
 import jwt from "jsonwebtoken";
+import { imagekit } from "../../../../packages/libs/imagekit";
 //it is for user registration
 export const userRegistration = async (
   req: Request,
@@ -107,21 +108,22 @@ export const loginUser = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    debugger;
     const { email, password } = req.body;
 
     if (!email || !password) {
-      return next(new ValidationError("Email and password are required!"));
+      throw new ValidationError("Email and password are required!");
     }
 
     const user = await prisma.user.findUnique({ where: { email } });
 
     if (!user) {
-      return next(new AuthError("Invalid email or password."));
+      throw new AuthError("Invalid email or password.");
     }
 
     const isMatch = await bcrypt.compare(password, user.password!);
     if (!isMatch) {
-      return next(new AuthError("Invalid email or password."));
+      throw new AuthError("Invalid email or password.");
     }
 
     // Generate tokens
@@ -270,6 +272,7 @@ export const refreshToken = async (
 };
 
 // 🔑 Request Forgot Password OTP
+// Step 1: Request OTP
 export const verifyUserForgotPassword = async (
   req: Request,
   res: Response,
@@ -278,24 +281,40 @@ export const verifyUserForgotPassword = async (
   try {
     const { email } = req.body;
 
-    if (!email) {
-      throw new ValidationError("Email is required!");
-    }
+    if (!email) throw new ValidationError("Email is required!");
 
     const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) {
-      return next(new ValidationError("User not found!"));
-    }
+    if (!user) throw new ValidationError("User not found!");
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpHash = await bcrypt.hash(otp, 10);
+
+    await redis.set(`forgot:${email}`, JSON.stringify({ otpHash }), "EX", 600);
+
+    const resetLink = `http://localhost:3000/reset-password?email=${encodeURIComponent(
+      email
+    )}`;
+
+    await sendEmail(
+      email,
+      "Reset Your Password",
+      "forgot-password-user.mail.ejs",
+      {
+        otp,
+        resetLink, // ✅ Pass reset link to email template
+        name: user?.name || "User",
+      }
+    );
 
     res.status(200).json({
-      message: "OTP sent to email. Please verify your account.",
+      message: "OTP and reset link sent to email. Please verify your account.",
     });
   } catch (error) {
     next(error);
   }
 };
 
-// 🔑 Verify Forgot Password OTP
+// Step 2: Verify OTP and Reset Password
 export const verifyForgotPasswordOtp = async (
   req: Request,
   res: Response,
@@ -308,17 +327,16 @@ export const verifyForgotPasswordOtp = async (
       throw new ValidationError("Email, OTP, and new password are required!");
     }
 
-    // get OTP data from Redis
-    const data = await redis.get(`forgot:${email}`);
-    if (!data) {
-      return next(new ValidationError("OTP expired or invalid."));
+    if (newPassword.length < 8) {
+      throw new ValidationError("Password must be at least 8 characters long.");
     }
+
+    const data = await redis.get(`forgot:${email}`);
+    if (!data) throw new ValidationError("OTP expired or invalid.");
 
     const { otpHash } = JSON.parse(data);
     const isOtpValid = await bcrypt.compare(otp, otpHash);
-    if (!isOtpValid) {
-      return next(new ValidationError("Invalid OTP"));
-    }
+    if (!isOtpValid) throw new ValidationError("Invalid OTP");
 
     const passwordHash = await bcrypt.hash(newPassword, 10);
 
@@ -327,7 +345,6 @@ export const verifyForgotPasswordOtp = async (
       data: { password: passwordHash },
     });
 
-    // clean up OTP
     await redis.del(`forgot:${email}`);
 
     res.status(200).json({ message: "Password reset successful" });
@@ -358,6 +375,195 @@ export const logoutUser = async (
     });
 
     return res.status(200).json({ message: "Logged out successfully" });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+//========================ADMIN PART HERE =====================
+
+export const loginAdmin = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password)
+      throw new ValidationError("Email and password are required!");
+
+    const admin = await prisma.admin.findUnique({ where: { email } });
+    if (!admin) throw new AuthError("Invalid email or password.");
+
+    const isMatch = await bcrypt.compare(password, admin.password!);
+    if (!isMatch) throw new AuthError("Invalid email or password.");
+
+    const accessToken = jwt.sign(
+      { id: admin.id, role: "admin" },
+      process.env.ACCESS_TOKEN_SECRET as string,
+      { expiresIn: "15m" }
+    );
+
+    const refreshToken = jwt.sign(
+      { id: admin.id, role: "admin" },
+      process.env.REFRESH_TOKEN_SECRET as string,
+      { expiresIn: "7d" }
+    );
+
+    setCookie(res, "admin_access_token", accessToken);
+    setCookie(res, "admin_refresh_token", refreshToken);
+
+    res.status(200).json({
+      message: "Admin login successful",
+      admin: {
+        id: admin.id,
+        name: admin.name,
+        email: admin.email,
+        role: "admin",
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// 🔄 Refresh Token for Admin
+export const refreshAdminToken = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const token =
+      req.cookies["admin_refresh_token"] ||
+      req.headers.authorization?.split(" ")[1];
+
+    if (!token) throw new ValidationError("Unauthorized! No refresh token.");
+
+    const decoded = jwt.verify(
+      token,
+      process.env.REFRESH_TOKEN_SECRET as string
+    ) as { id: string; role: "admin" };
+
+    if (!decoded || decoded.role !== "admin")
+      throw new AuthError("Forbidden! Invalid refresh token.");
+
+    const admin = await prisma.admin.findUnique({ where: { id: decoded.id } });
+    if (!admin) throw new AuthError("Forbidden! Admin not found.");
+
+    const newAccessToken = jwt.sign(
+      { id: decoded.id, role: "admin" },
+      process.env.ACCESS_TOKEN_SECRET as string,
+      { expiresIn: "15m" }
+    );
+
+    setCookie(res, "access_token", newAccessToken);
+
+    res.status(201).json({ success: true });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// 👤 Get Logged-in Admin
+export const getAdmin = async (req: any, res: Response, next: NextFunction) => {
+  try {
+    const admin = req.user;
+
+    res.status(200).json({ success: true, admin });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// 🚪 Logout Admin
+export const logoutAdmin = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    res.clearCookie("admin_access_token", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      path: "/",
+    });
+    res.clearCookie("admin_refresh_token", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      path: "/",
+    });
+
+    res.status(200).json({ message: "Admin logged out successfully" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// UPDATE: user profile (name, phone, avatar)
+
+export const updateUserProfile = async (
+  req: any,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = req.user?.id as string | undefined;
+    if (!userId) return next(new AuthError("Unauthorized"));
+
+    const { name, phone, avatar } = req.body as {
+      name?: string;
+      phone?: string | null;
+      avatar?: string | null; // base64 data URL or null to remove
+    };
+
+    if (
+      typeof name === "undefined" &&
+      typeof phone === "undefined" &&
+      typeof avatar === "undefined"
+    ) {
+      return next(new ValidationError("No fields provided to update"));
+    }
+
+    const data: any = {};
+    if (typeof name !== "undefined") data.name = name?.trim() || null;
+    if (typeof phone !== "undefined") data.phone = phone?.trim() || null;
+
+    // Handle avatar
+    if (typeof avatar !== "undefined") {
+      if (avatar === null) {
+        data.avatar = null;
+      } else if (avatar.startsWith("data:")) {
+        const uploadRes = await imagekit.upload({
+          file: avatar, // base64 data URL
+          fileName: `avatar_${userId}_${Date.now()}`,
+          folder: "/user-avatars",
+        });
+        data.avatar = uploadRes.url;
+      }
+    }
+
+    const updated = await prisma.user.update({
+      where: { id: userId },
+      data,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        avatar: true,
+        isVerified: true,
+        createdAt: true,
+      },
+    });
+
+    return res.status(200).json({
+      message: "Profile updated successfully",
+      user: updated,
+    });
   } catch (error) {
     return next(error);
   }

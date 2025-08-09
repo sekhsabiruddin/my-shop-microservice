@@ -1,127 +1,177 @@
 import { Request, Response } from "express";
-import { PrismaClient } from "@prisma/client";
-import { ObjectId } from "bson";
-const prisma = new PrismaClient();
+import { prisma } from "../../../../packages/libs/prisma";
 
-/**
- * Create a chat room (1 admin + many users)
- * Endpoint: POST /api/chat/room
- */
-export const createRoom = async (req: Request, res: Response) => {
+// -------------------------------
+// GET: Admin fetches messages with a user
+// GET /chat/:userId/messages
+export const getMessagesWithAdmin = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const userId = req.params.userId;
+
   try {
-    const { adminId, userIds, name, isGroup } = req.body;
-
-    if (!adminId || !Array.isArray(userIds) || userIds.length === 0) {
-      return res
-        .status(400)
-        .json({ error: "adminId and userIds are required" });
-    }
-
-    // ✅ Validate ObjectIds
-    if (!ObjectId.isValid(adminId)) {
-      return res.status(400).json({ error: "Invalid adminId" });
-    }
-    for (const id of userIds) {
-      if (!ObjectId.isValid(id)) {
-        return res.status(400).json({ error: `Invalid userId: ${id}` });
-      }
-    }
-
-    // ✅ Check if 1-to-1 room already exists
-    if (!isGroup && userIds.length === 1) {
-      const existingRoom = await prisma.chatRoom.findFirst({
-        where: {
-          isGroup: false,
-          adminId,
-          chatRoomUsers: { some: { userId: userIds[0] } },
-        },
-        include: {
-          chatRoomUsers: { include: { user: true } },
-          admin: true,
-        },
-      });
-
-      if (existingRoom) {
-        return res.json(existingRoom); // reuse existing room
-      }
-    }
-
-    // ✅ Create a new room
-    const room = await prisma.chatRoom.create({
-      data: {
-        name: name || null,
-        isGroup: isGroup || false,
-        adminId,
-        chatRoomUsers: {
-          create: userIds.map((userId: string) => ({ userId })),
-        },
-      },
-      include: {
-        chatRoomUsers: { include: { user: true } },
-        admin: true,
-      },
-    });
-
-    res.status(201).json(room);
-  } catch (error: any) {
-    console.error("❌ createRoom error:", error);
-    res.status(500).json({ error: error.message });
-  }
-};
-
-/**
- * Get all messages from a room
- * Endpoint: GET /api/chat/room/:roomId/messages
- */
-export const getMessages = async (req: Request, res: Response) => {
-  try {
-    const { roomId } = req.params;
-
     const messages = await prisma.message.findMany({
-      where: { roomId },
-      orderBy: { createdAt: "asc" },
-      include: {
-        senderUser: true,
-        senderAdmin: true,
+      where: {
+        OR: [
+          {
+            fromUserId: userId,
+            toAdminId: { not: null },
+          },
+          {
+            toUserId: userId,
+            fromAdminId: { not: null },
+          },
+        ],
       },
+      orderBy: { timestamp: "asc" },
     });
 
     res.json(messages);
-  } catch (error: any) {
-    console.error("❌ getMessages error:", error);
-    res.status(500).json({ error: error.message });
+  } catch (err) {
+    console.error("Error fetching messages:", err);
+    res.status(500).json({ error: "Failed to fetch messages" });
   }
 };
 
-/**
- * Save a new message in a room
- * Endpoint: POST /api/chat/room/:roomId/message
- */
-export const saveMessage = async (req: Request, res: Response) => {
-  try {
-    const { roomId } = req.params;
-    const { senderUserId, senderAdminId, content } = req.body;
+// -------------------------------
+// POST: Send message from user or admin
+// POST /chat/send
 
-    if (!content) {
-      return res.status(400).json({ error: "Message content is required" });
+export const sendMessage = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const { fromUserId, toUserId, content } = req.body;
+
+  // ✅ Validate content
+  if (typeof content !== "string" || content.trim() === "") {
+    res.status(400).json({ error: "Message content is required" });
+    return;
+  }
+
+  // ✅ Validate that either a sender or recipient is present
+  const isUserSending =
+    typeof fromUserId === "string" && fromUserId.trim() !== "";
+  const isAdminSending = typeof toUserId === "string" && toUserId.trim() !== "";
+
+  if (!isUserSending && !isAdminSending) {
+    res
+      .status(400)
+      .json({ error: "Either fromUserId or toUserId is required" });
+    return;
+  }
+
+  try {
+    // ✅ Get admin
+    const admin = await prisma.admin.findFirst();
+    if (!admin) {
+      res.status(500).json({ error: "Admin not found" });
+      return;
     }
 
-    const message = await prisma.message.create({
-      data: {
-        content,
-        roomId,
-        senderUserId: senderUserId || null,
-        senderAdminId: senderAdminId || null,
+    // ✅ Create message
+    let message;
+
+    if (isUserSending) {
+      // User → Admin
+      message = await prisma.message.create({
+        data: {
+          content,
+          fromUserId,
+          toAdminId: admin.id,
+        },
+      });
+    } else if (isAdminSending) {
+      // Admin → User
+      message = await prisma.message.create({
+        data: {
+          content,
+          fromAdminId: admin.id,
+          toUserId,
+        },
+      });
+    }
+
+    res.status(201).json(message);
+  } catch (err) {
+    console.error("Message error:", err);
+    res.status(500).json({ error: "Failed to send message" });
+  }
+};
+
+// -------------------------------
+// GET: Fetch messages for current user (user's perspective)
+// GET /chat/me?userId=abc123
+export const getMyMessages = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const userId = req.query.userId as string;
+
+  if (!userId) {
+    res.status(400).json({ error: "Missing userId" });
+    return;
+  }
+
+  try {
+    const messages = await prisma.message.findMany({
+      where: {
+        OR: [
+          {
+            fromUserId: userId,
+            toAdminId: { not: null },
+          },
+          {
+            toUserId: userId,
+            fromAdminId: { not: null },
+          },
+        ],
       },
-      include: {
-        senderUser: true,
-        senderAdmin: true,
+      orderBy: { timestamp: "asc" },
+    });
+
+    res.json(messages);
+  } catch (err) {
+    console.error("Error fetching user messages:", err);
+    res.status(500).json({ error: "Failed to load messages" });
+  }
+};
+
+export const getInboxUsers = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const users = await prisma.user.findMany({
+      where: {
+        OR: [
+          {
+            messagesSent: {
+              some: {
+                toAdminId: { not: null },
+              },
+            },
+          },
+          {
+            messagesReceived: {
+              some: {
+                fromAdminId: { not: null },
+              },
+            },
+          },
+        ],
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
       },
     });
 
-    res.status(201).json(message);
-  } catch (error: any) {
-    console.error("❌ saveMessage error:", error);
-    res.status(500).json({ error: error.message });
+    res.json(users);
+  } catch (err) {
+    console.error("Error fetching inbox users:", err);
+    res.status(500).json({ error: "Failed to fetch inbox users" });
   }
 };

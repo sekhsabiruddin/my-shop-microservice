@@ -1,7 +1,7 @@
 "use client";
-import React, { useState, useEffect } from "react";
+
+import React, { useState } from "react";
 import { Send, Phone, Video } from "lucide-react";
-import axios from "axios";
 import {
   useQuery,
   useMutation,
@@ -10,89 +10,51 @@ import {
   QueryClientProvider,
 } from "@tanstack/react-query";
 import useUser from "../../../hooks/useUser";
+import axiosInstance from "../../../utils/axiosinstance";
 
-// React Query setup
+// Setup React Query
 const queryClient = new QueryClient();
-
-// Axios instance
-const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/chat/api",
-  withCredentials: true,
-});
 
 function SupportChat() {
   const { user, isLoading: userLoading } = useUser();
-  const [activeChat, setActiveChat] = useState<{
-    roomId?: string;
-    userId?: string;
-  }>({});
   const [input, setInput] = useState("");
   const qc = useQueryClient();
 
-  // ✅ Create or get room when user is ready
-  useEffect(() => {
-    const initRoom = async () => {
-      if (!user) return;
+  const userId = user?.id;
 
-      try {
-        const { data: room } = await api.post("/chat/room", {
-          adminId: "688fa47faee3152f6c730046", // Hardcoded admin
-          userIds: [user.id],
-        });
-
-        setActiveChat({ roomId: room.id, userId: user.id });
-      } catch (err) {
-        console.error("Failed to initialize chat room:", err);
-      }
-    };
-
-    if (user) initRoom();
-  }, [user]);
-
-  // ✅ Fetch messages
+  // ✅ Fetch messages for this user
   const { data: messages = [], isLoading: messagesLoading } = useQuery({
-    queryKey: ["messages", activeChat.roomId],
+    queryKey: ["messages", userId],
     queryFn: async () => {
-      const { data } = await api.get(
-        `/chat/room/${activeChat.roomId}/messages`
-      );
+      const { data } = await axiosInstance.get("/chat/api/chat/me", {
+        params: { userId },
+      });
       return data;
     },
-    enabled: !!activeChat.roomId,
+    enabled: !!userId,
   });
 
-  // ✅ Send message mutation
+  // ✅ Send message (User → Admin)
   const { mutate: sendMessage, isPending: isSending } = useMutation({
     mutationFn: async () => {
-      const { data } = await api.post(
-        `/chat/room/${activeChat.roomId}/message`,
-        {
-          senderUserId: activeChat.userId,
-          content: input,
-        }
-      );
+      const { data } = await axiosInstance.post("/chat/api/chat/send", {
+        fromUserId: userId,
+        content: input,
+      });
       return data;
     },
     onSuccess: () => {
       setInput("");
-      qc.invalidateQueries({ queryKey: ["messages", activeChat.roomId] });
+      qc.invalidateQueries({ queryKey: ["messages", userId] });
     },
   });
 
-  // ✅ Handle input submit
   const handleSend = () => {
-    if (!input.trim() || !activeChat.roomId) return;
+    if (!input.trim() || !userId) return;
     sendMessage();
   };
 
-  // 🔁 Loading state
-  if (userLoading || !activeChat.roomId || messagesLoading) {
-    return (
-      <div className="h-screen flex items-center justify-center text-gray-600">
-        Loading chat...
-      </div>
-    );
-  }
+  if (userLoading) return <div>Loading user...</div>;
 
   return (
     <div className="flex flex-col h-screen bg-[#fbf9f6] text-gray-900">
@@ -114,32 +76,31 @@ function SupportChat() {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4 bg-slate-50">
-        {messages.map((msg: any, index: number) => (
-          <div
-            key={index}
-            className={`flex ${
-              msg.senderUserId === activeChat.userId
-                ? "justify-end"
-                : "justify-start"
-            }`}
-          >
+        {messages.map((msg: any, index: number) => {
+          const isMine = msg.fromUserId === userId;
+          return (
             <div
-              className={`max-w-xs px-4 py-2 rounded-2xl shadow ${
-                msg.senderUserId === activeChat.userId
-                  ? "bg-[#773d4c] text-white rounded-br-none"
-                  : "bg-white text-gray-800 border border-gray-200 rounded-bl-none"
-              }`}
+              key={index}
+              className={`flex ${isMine ? "justify-end" : "justify-start"}`}
             >
-              <p>{msg.content}</p>
-              <span className="text-xs text-gray-500 block mt-1">
-                {new Date(msg.createdAt).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </span>
+              <div
+                className={`max-w-xs px-4 py-2 rounded-2xl shadow ${
+                  isMine
+                    ? "bg-[#773d4c] text-white rounded-br-none"
+                    : "bg-white text-gray-800 border border-gray-200 rounded-bl-none"
+                }`}
+              >
+                <p>{msg.content}</p>
+                <span className="text-xs text-gray-500 block mt-1">
+                  {new Date(msg.timestamp).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Input */}
@@ -149,15 +110,15 @@ function SupportChat() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Type your message..."
-          disabled={!activeChat.roomId}
+          disabled={!userId}
           className="flex-1 mx-3 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-[#773d4c]"
           onKeyDown={(e) => e.key === "Enter" && handleSend()}
         />
         <button
           onClick={handleSend}
-          disabled={!activeChat.roomId || isSending}
+          disabled={!userId || isSending}
           className={`p-3 rounded-full transition-colors ${
-            activeChat.roomId
+            userId
               ? "bg-[#773d4c] text-white hover:bg-[#5f2f3d]"
               : "bg-gray-400 text-gray-200 cursor-not-allowed"
           }`}
@@ -168,5 +129,4 @@ function SupportChat() {
     </div>
   );
 }
-
 export default SupportChat;

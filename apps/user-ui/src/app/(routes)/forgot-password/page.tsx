@@ -1,7 +1,12 @@
 "use client";
+
 import React from "react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import Link from "next/link";
+
+import { useMutation } from "@tanstack/react-query";
+import { toast } from "sonner"; // or use any toast lib you use
+import axios from "axios";
 
 interface ForgotPasswordFormInputs {
   email: string;
@@ -11,19 +16,35 @@ const ForgotPassword = () => {
   const {
     register,
     handleSubmit,
-    formState: { errors, isValid, isSubmitting },
+    formState: { errors, isValid },
   } = useForm<ForgotPasswordFormInputs>({
-    mode: "onChange", // validates on change
+    mode: "onChange",
+  });
+
+  const forgotPasswordMutation = useMutation({
+    mutationFn: async (data: ForgotPasswordFormInputs) => {
+      const response = await axios.post(
+        "http://localhost:8080/api/forgot-password ",
+        data
+      );
+      return response.data;
+    },
+    onSuccess: (data) => {
+      toast.success(data?.message || "OTP sent successfully");
+    },
+    onError: (error: any) => {
+      const msg =
+        error?.response?.data?.message ||
+        error?.response?.data?.error?.message ||
+        error?.message ||
+        "Something went wrong";
+
+      toast.error(msg);
+    },
   });
 
   const onSubmit: SubmitHandler<ForgotPasswordFormInputs> = (data) => {
-    console.log("Reset link sent to:", data.email);
-    // Example: call your API
-    // fetch("/api/forgot-password", {
-    //   method: "POST",
-    //   headers: { "Content-Type": "application/json" },
-    //   body: JSON.stringify(data),
-    // });
+    forgotPasswordMutation.mutate(data);
   };
 
   return (
@@ -31,12 +52,11 @@ const ForgotPassword = () => {
       <div className="bg-white border border-gray-200 rounded-lg shadow-md p-8 w-full max-w-md text-center">
         <h2 className="text-xl font-medium mb-4">Forgot Password</h2>
         <p className="text-sm text-gray-600 mb-6">
-          Enter your email below and we’ll send you a link to reset your
+          Enter your email below and we’ll send you an OTP to reset your
           password.
         </p>
 
         <form onSubmit={handleSubmit(onSubmit)}>
-          {/* Email Input */}
           <div className="mb-6 text-left">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Email
@@ -62,22 +82,19 @@ const ForgotPassword = () => {
             )}
           </div>
 
-          {/* Submit Button */}
           <button
             type="submit"
-            disabled={!isValid || isSubmitting}
-            className={`w-full py-3 px-4 rounded-md font-medium transition-colors mb-6 
-              ${
-                isValid
-                  ? "bg-[#773d4c] text-white "
-                  : "bg-[#d6c5ca] text-white cursor-not-allowed"
-              }`}
+            disabled={!isValid || forgotPasswordMutation.isPending}
+            className={`w-full py-3 px-4 rounded-md font-medium transition-colors mb-6 ${
+              isValid
+                ? "bg-[#773d4c] text-white"
+                : "bg-[#d6c5ca] text-white cursor-not-allowed"
+            }`}
           >
-            {isSubmitting ? "Sending..." : "SEND RESET LINK"}
+            {forgotPasswordMutation.isPending ? "Sending..." : "SEND OTP"}
           </button>
         </form>
 
-        {/* Back to Login */}
         <Link href="/login" className="text-sm text-[#773d4c] hover:underline">
           Back to Login
         </Link>

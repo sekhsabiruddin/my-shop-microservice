@@ -156,6 +156,8 @@ const config = {
         moontime: ["MoonTime", "cursive"],
         ptserif: ["PT Serif", "serif"],
         Inter: ["Inter"],
+        poppins: ["var(--font-poppins)"],
+        roboto: ["var(--font-roboto)"],
       },
     },
   },

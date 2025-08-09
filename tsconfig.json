@@ -26,6 +26,9 @@
     },
     {
       "path": "./apps/add-to-cart-service"
+    },
+    {
+      "path": "./apps/order-service"
     }
   ]
 }

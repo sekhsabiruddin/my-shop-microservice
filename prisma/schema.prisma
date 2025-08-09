@@ -11,13 +11,16 @@ model User {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
   name        String
   email       String   @unique
+  phone             String?    // optional phone number
+  avatar            String? 
   password    String
   isVerified  Boolean  @default(false)
   createdAt   DateTime @default(now())
   reviews     Review[]
-  chatRoomUsers ChatRoomUser[]
-  messages    Message[]
   cartItems      CartItem[]
+  orders       Order[]
+  messagesSent      Message[] @relation("UserSentMessages")
+  messagesReceived  Message[] @relation("UserReceivedMessages")
 }
 
 
@@ -28,10 +31,35 @@ model Admin {
   password    String
   permissions String[] @default([])
   createdAt   DateTime @default(now())
-  chatRooms   ChatRoom[]
-  messages    Message[]
+
+  messagesSent      Message[] @relation("AdminSentMessages")
+  messagesReceived  Message[] @relation("AdminReceivedMessages")
+
 }
 
+
+model Message {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  content     String
+  timestamp   DateTime  @default(now())
+  read        Boolean   @default(false)
+
+  // User sender
+  fromUserId  String?   @db.ObjectId
+  fromUser    User?     @relation("UserSentMessages", fields: [fromUserId], references: [id])
+
+  // Admin sender
+  fromAdminId String?   @db.ObjectId
+  fromAdmin   Admin?    @relation("AdminSentMessages", fields: [fromAdminId], references: [id])
+
+  // User recipient
+  toUserId    String?   @db.ObjectId
+  toUser      User?     @relation("UserReceivedMessages", fields: [toUserId], references: [id])
+
+  // Admin recipient
+  toAdminId   String?   @db.ObjectId
+  toAdmin     Admin?    @relation("AdminReceivedMessages", fields: [toAdminId], references: [id])
+}
 model Product {
   id                String   @id @default(auto()) @map("_id") @db.ObjectId
   title             String
@@ -49,7 +77,7 @@ model Product {
   featuredProduct   Boolean  @default(false)
   images            ProductImage[] @relation("ProductImages")
   reviews           Review[]
-   cartItems         CartItem[]
+  cartItems         CartItem[]
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 }
@@ -91,57 +119,48 @@ model ReviewImage {
   createdAt DateTime @default(now())
 }
 
-model ChatRoom {
-  id          String    @id @default(auto()) @map("_id") @db.ObjectId
-  name        String?   // optional room name
-  isGroup     Boolean   @default(false)
-  createdAt   DateTime  @default(now())
-  // Relations
-  admin       Admin?    @relation(fields: [adminId], references: [id], onDelete: SetNull)
-  adminId     String?   @db.ObjectId
-  messages    Message[]
-  
-  chatRoomUsers ChatRoomUser[]
-}
 
-// Explicit junction model for User-ChatRoom many-to-many relationship
-model ChatRoomUser {
-  id         String   @id @default(auto()) @map("_id") @db.ObjectId
-  joinedAt   DateTime @default(now())
-  isActive   Boolean  @default(true)
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId     String   @db.ObjectId
-  chatRoom   ChatRoom @relation(fields: [chatRoomId], references: [id], onDelete: Cascade)
-  chatRoomId String   @db.ObjectId
-  @@unique([userId, chatRoomId])
-}
 
-model Message {
-  id          String    @id @default(auto()) @map("_id") @db.ObjectId
-  content     String
-  createdAt   DateTime  @default(now())
-  seenBy      String[]  @default([]) // store user/admin IDs who have seen it
-  room        ChatRoom  @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  roomId      String    @db.ObjectId
-  senderUser  User?     @relation(fields: [senderUserId], references: [id], onDelete: SetNull)
-  senderUserId String?  @db.ObjectId
-  senderAdmin Admin?    @relation(fields: [senderAdminId], references: [id], onDelete: SetNull)
-  senderAdminId String? @db.ObjectId
-}
+
+
+
+
 
 model CartItem {
   id         String   @id @default(auto()) @map("_id") @db.ObjectId
-
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId     String   @db.ObjectId
-
   product    Product  @relation(fields: [productId], references: [id])
   productId  String   @db.ObjectId
 
   quantity   Int      @default(1)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
-
   @@unique([userId, productId]) // Prevents duplicate items in cart
 }
 
+
+
+enum OrderStatus {
+  CREATED
+  ATTEMPTED
+  PAID
+  CAPTURED
+  FAILED
+}
+model Order {
+  id       String @id @default(auto()) @map("_id") @db.ObjectId
+  userId   String @db.ObjectId
+  user     User   @relation(fields: [userId], references: [id])
+  amountPaise       Int
+  currency          String      @default("INR")
+  notes             Json?
+  status            OrderStatus @default(CREATED)
+  cartItems         Json?
+  razorpayOrderId   String?
+  razorpayPaymentId  String?
+  signatureVerified Boolean     @default(false)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+}

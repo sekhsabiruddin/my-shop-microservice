@@ -3,10 +3,10 @@ import React, { useState } from "react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-
+import { toast } from "sonner";
 interface LoginFormInputs {
   email: string;
   password: string;
@@ -28,20 +28,21 @@ const LoginPage = () => {
   const loginMutation = useMutation({
     mutationFn: (data: LoginFormInputs) =>
       axios.post("http://localhost:8080/api/login", data, {
-        withCredentials: true, // allows cookies (refresh token) from backend
+        withCredentials: true,
       }),
     onSuccess: (res) => {
       const { accessToken, user } = res.data;
-      console.log("Login success ✅:", user);
-
-      // Store access token in memory (for API calls)
-      sessionStorage.setItem("accessToken", accessToken);
-
-      router.push("/"); // redirect after login
+      // console.log("Login success ✅:", user);
+      // sessionStorage.setItem("accessToken", accessToken);
+      router.push("/");
+      toast.success("Welcome back, " + user.name);
     },
-    onError: (err) => {
-      console.error("Login failed ❌:", err);
-      alert("Invalid credentials. Please try again.");
+    onError: (err: unknown) => {
+      const axiosError = err as AxiosError<any>;
+      const message =
+        axiosError?.response?.data?.error?.message || "Something went wrong";
+
+      toast.error(message);
     },
   });
 

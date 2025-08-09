@@ -12,13 +12,14 @@ type User = {
   id: string;
   name: string;
   email: string;
+  avater?: string;
 };
 
 // API request to get the logged-in user
 const fetchUser = async (isLoggedIn: boolean): Promise<User> => {
   const config = isLoggedIn ? isProtected : {};
   const response = await axiosInstance.get("/api/logged-in-user", config);
-  console.log("Auth data is ........", response.data.user);
+
   return response.data.user;
 };
 
@@ -62,5 +63,3 @@ const useUser = () => {
 };
 
 export default useUser;
-
-
