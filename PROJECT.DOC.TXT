@@ -19,6 +19,9 @@ Why this command `npx prisma generate`?
 Why this command `npx prisma db push'?
 
 
+RESET THE NX :npx nx reset
+
+
 ===========================CHATER -2===================
 
 1)How to install nextjs using nx ?
@@ -33,3 +36,53 @@ step:-2 -> https://youtu.be/X69A4c2Rg54?si=SbMie2KUSK2Feran(2:26:44)
 
 3) Where should I store the access and refresh tokens? How does it work?
 ✅ Store both tokens in HTTP-only cookies. These cookies are automatically sent with each request to your server, so you don’t need to manually attach them in your frontend code.
+
+====================================PUSH NOTIFICATION TOKEN=================
+1)if want implement push notification it will generate in the forntend then 
+we will store it into database .
+
+
+=============================== AXIOS INTERCEPTOR NOTES ==================================
+
+🤔 What is the purpose?
+--------------------------------------------------------
+✅ This code will automatically get a new access token when the old one expires.
+✅ If any API call returns 401 (Unauthorized), it tries to refresh the token.
+✅ Then it repeats (retries) the failed request again with the new token.
+✅ User does not notice anything, no need to login again.
+
+--------------------------------------------------------
+😓 What happens if token expires?
+--------------------------------------------------------
+Imagine we called 5 APIs at the same time.
+All 5 APIs return 401 (token expired).
+Now each one will try to call /api/refresh-token.
+That means refresh API will be called 5 times — BAD!
+
+--------------------------------------------------------
+🧠 Why do we use:  isRefreshing = true ?
+--------------------------------------------------------
+We only want to call /refresh-token ONE time.
+First time we get 401:
+     - isRefreshing is false => we set isRefreshing = true.
+     - We call /refresh-token.
+
+While that refresh is going on:
+     - All other requests see isRefreshing = true
+     - They WAIT in a queue.
+     - They do NOT call refresh again.
+
+When refresh is successful:
+     - isRefreshing becomes false again.
+     - Now all waiting requests will automatically repeat.
+
+
+
+
+
+
+🔥🔥🔥🔥🔥🔥🔥🔥_______________BACKEND____________🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+
+
+
+

@@ -7,7 +7,10 @@ import { AuthError, ValidationError } from "../../../../packages/error-handler";
 import { setCookie } from "../utils/cookies/setCookies";
 import jwt from "jsonwebtoken";
 import { imagekit } from "../../../../packages/libs/imagekit";
-//it is for user registration
+import { generateCodeVerifier, generateState } from "arctic";
+import { googleClient } from "../../../../packages/libs/gooole/Index";
+import fetch from "node-fetch";
+
 export const userRegistration = async (
   req: Request,
   res: Response,
@@ -566,5 +569,161 @@ export const updateUserProfile = async (
     });
   } catch (error) {
     return next(error);
+  }
+};
+
+// FCM TOKEN
+
+export const saveDeviceToken = async (
+  req: any,
+  res: Response
+): Promise<void> => {
+  try {
+    const { token, platform } = req.body;
+    const userId = req.user?.id;
+
+    if (!token || !userId) {
+      res
+        .status(400)
+        .json({ error: "Token and either userId or adminId are required" });
+      return;
+    }
+
+    const deviceToken = await prisma.deviceToken.upsert({
+      where: { token },
+      update: { platform, userId },
+      create: { token, platform, userId },
+    });
+
+    res.json({ success: true, data: deviceToken });
+    return; // optional but keeps TypeScript happy
+  } catch (error) {
+    console.error("Error saving device token:", error);
+    res.status(500).json({ error: "Failed to save device token" });
+    return;
+  }
+};
+
+//Gooole Auth
+
+// Step 1: Redirect to Google OAuth
+
+export const googleAuth = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const state = generateState();
+    const codeVerifier = generateCodeVerifier();
+
+    res.cookie("oauth_state", state, {
+      httpOnly: true,
+      sameSite: "lax",
+      maxAge: 5 * 60 * 1000,
+    });
+    res.cookie("oauth_code_verifier", codeVerifier, {
+      httpOnly: true,
+      sameSite: "lax",
+      maxAge: 5 * 60 * 1000,
+    });
+
+    const scopes = ["openid", "email", "profile"];
+    const authURL = googleClient.createAuthorizationURL(
+      state,
+      codeVerifier,
+      scopes
+    );
+
+    return res.redirect(authURL.toString());
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Step 2: Google callback
+export const googleCallback = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { code, state } = req.query;
+    const savedState = req.cookies["oauth_state"];
+    const codeVerifier = req.cookies["oauth_code_verifier"];
+
+    if (
+      !code ||
+      !state ||
+      !savedState ||
+      state !== savedState ||
+      !codeVerifier
+    ) {
+      res.status(400).json({ message: "Invalid state or code" });
+      return;
+    }
+
+    res.clearCookie("oauth_state");
+    res.clearCookie("oauth_code_verifier");
+
+    const tokens = await googleClient.validateAuthorizationCode(
+      code as string,
+      codeVerifier
+    );
+    const accessToken = tokens.accessToken();
+
+    const profileRes = await fetch(
+      "https://www.googleapis.com/oauth2/v3/userinfo",
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      }
+    );
+    const profile = (await profileRes.json()) as {
+      email: string;
+      name?: string;
+      picture?: string;
+    };
+
+    let user = await prisma.user.findUnique({
+      where: { email: profile.email },
+    });
+
+    if (!user) {
+      const randomPassword = await bcrypt.hash(
+        Math.random().toString(36) + Date.now().toString(),
+        10
+      );
+
+      user = await prisma.user.create({
+        data: {
+          name: profile.name ?? "Google User",
+          email: profile.email,
+          password: randomPassword,
+          isVerified: true,
+          avatar: profile.picture ?? null,
+        },
+      });
+    }
+
+    const accessTokenJwt = jwt.sign(
+      { id: user.id, role: "user" },
+      process.env.ACCESS_TOKEN_SECRET as string,
+      { expiresIn: "15m" }
+    );
+
+    const refreshTokenJwt = jwt.sign(
+      { id: user.id, role: "user" },
+      process.env.REFRESH_TOKEN_SECRET as string,
+      { expiresIn: "7d" }
+    );
+
+    setCookie(res, "access_token", accessTokenJwt);
+    setCookie(res, "refresh_token", refreshTokenJwt);
+
+    res.redirect(`${process.env.CLIENT_BASE_URL}/dashboard`);
+    return;
+  } catch (err) {
+    next(err);
+    return; // ✅ ensures all paths return
   }
 };

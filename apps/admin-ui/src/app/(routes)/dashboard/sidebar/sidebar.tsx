@@ -21,6 +21,7 @@ import {
   Settings,
   SquarePlus,
   TicketPercent,
+  Users,
 } from "lucide-react"; // ✅ Adjust this import based on your icon library
 
 const SidebarBarWrapper = () => {
@@ -75,6 +76,14 @@ const SidebarBarWrapper = () => {
 
         <div className="mt-2 block">
           <SidebarMenu title="Main Menu">
+            <SidebarItem
+              isActive={activeSidebar === "/dashboard/users"}
+              title="User"
+              href="/dashboard/users"
+              icon={
+                <Users size={26} color={getIconColor("/dashboard/users")} />
+              }
+            />
             <SidebarItem
               isActive={activeSidebar === "/dashboard/orders"}
               title="Orders"

@@ -1,13 +1,18 @@
 "use client";
 
-import { Search, Heart, ShoppingCart, User } from "lucide-react";
+import { Search, Heart, ShoppingCart, User, Bell } from "lucide-react";
 
 import { useAppSelector, useAppDispatch } from "../../../store/hook";
 import { toggleCart } from "../../../store/slices/cartSlice";
 import { RootState } from "../../../store";
 import Link from "next/link";
+import { useState } from "react";
+import NotificationSidebar, {
+  NotificationBell,
+} from "../../../(routes)/notification/page";
 
 export default function Header() {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const dispatch = useAppDispatch();
   const cartItemsCount = useAppSelector((state: RootState) =>
     state.cart.items.reduce((sum, item) => sum + item.quantity, 0)
@@ -42,7 +47,9 @@ export default function Header() {
           {/* Icons */}
           <div className="flex items-center gap-6">
             <button className="hover:text-purple-600 transition-colors">
-              <Heart className="w-6 h-6" />
+              <Link href="/wishlist">
+                <Heart className="w-6 h-6" />
+              </Link>
             </button>
 
             {/* Cart Button */}
@@ -61,6 +68,13 @@ export default function Header() {
             <Link href="/profile">
               <User className="w-6 h-6" />
             </Link>
+            <div>
+              <NotificationBell onClick={() => setIsSidebarOpen(true)} />
+              <NotificationSidebar
+                isOpen={isSidebarOpen}
+                onClose={() => setIsSidebarOpen(false)}
+              />
+            </div>
           </div>
         </div>
 

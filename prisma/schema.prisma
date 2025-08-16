@@ -21,6 +21,8 @@ model User {
   orders       Order[]
   messagesSent      Message[] @relation("UserSentMessages")
   messagesReceived  Message[] @relation("UserReceivedMessages")
+  notifications Notification[]
+  deviceTokens  DeviceToken[]
 }
 
 
@@ -34,6 +36,7 @@ model Admin {
 
   messagesSent      Message[] @relation("AdminSentMessages")
   messagesReceived  Message[] @relation("AdminReceivedMessages")
+
 
 }
 
@@ -163,4 +166,38 @@ model Order {
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
 
+}
+
+
+model Notification {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String?  @db.ObjectId
+  user        User?    @relation(fields: [userId], references: [id])
+
+
+
+  type        NotificationType
+  title       String
+  message     String
+  data        Json?          // Can store extra info like orderId, offerId, etc.
+  isRead      Boolean  @default(false)
+  sentAt      DateTime @default(now())
+
+  // Push device token can be stored separately in another model
+}
+
+model DeviceToken {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String?  @db.ObjectId
+  user      User?    @relation(fields: [userId], references: [id])
+  token     String   @unique // FCM device token
+  platform  String?  // "web", "android", "ios"
+  createdAt DateTime @default(now())
+}
+enum NotificationType {
+  ORDER_CREATED
+  PAYMENT_SUCCESS
+  ORDER_STATUS_CHANGED
+  SALES_OFFER
+  GENERAL
 }

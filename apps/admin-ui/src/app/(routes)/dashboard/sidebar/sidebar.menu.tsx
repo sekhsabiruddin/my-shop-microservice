@@ -7,7 +7,7 @@ interface Props {
 
 const SidebarMenu = ({ title, children }: Props) => {
   return (
-    <div className="block">
+    <div className="block text-[#ffffff]">
       <h3 className="text-xs tracking-[0.04rem] pl-1">{title}</h3>
       {children}
     </div>

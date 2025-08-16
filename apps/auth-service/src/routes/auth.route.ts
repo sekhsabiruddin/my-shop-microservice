@@ -14,6 +14,9 @@ import {
   getAdmin,
   logoutAdmin,
   updateUserProfile,
+  saveDeviceToken,
+  googleAuth,
+  googleCallback,
 } from "../controllers/auth.controller";
 import isAuthenticated from "../../../../packages/middleware/isAuthenticated";
 import isAdminAuthenticated from "../../../../packages/middleware/isAdminAuthenticated";
@@ -39,9 +42,12 @@ router.put("/update-password", isAuthenticated, updateUserPassword);
 
 //=======================it for admin =========================
 router.post("/login-admin", loginAdmin);
+router.get("/login-with-google", googleAuth);
+router.get("/google/callback", googleCallback);
 router.post("/admin-refresh-token", refreshAdminToken);
 router.get("/logged-in-admin", isAdminAuthenticated, getAdmin);
 router.post("/logout-admin", isAdminAuthenticated, logoutAdmin);
 router.put("/update-profile", isAuthenticated, updateUserProfile);
+router.post("/device-token", isAuthenticated, saveDeviceToken);
 
 export default router;
